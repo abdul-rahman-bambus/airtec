@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_production_lot_form_airtec" model="ir.ui.view">
+        <field name="name">stock.lot.form.airtec</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group" position="inside">
+                <field name="code_payload"/>
+                <field name="code_device"/>
+                <field name="manufacturing_date"/>
+            </xpath>
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Codes">
+                    <group>
+                        <group>
+                            <field name="code_1"/>
+                            <field name="code_date_1" readonly="1"/>
+                            <field name="code_2"/>
+                            <field name="code_date_2" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="code_3"/>
+                            <field name="code_date_3" readonly="1"/>
+                            <field name="code_4"/>
+                            <field name="code_date_4" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+                <page string="Maintenance">
+                    <group>
+                        <group string="Maintenance Window 1">
+                            <field name="maintenance_1_start_date" readonly="1"/>
+                            <field name="maintenance_1_end_date" readonly="1"/>
+                        </group>
+                        <group string="Maintenance Window 2">
+                            <field name="maintenance_2_start_date" readonly="1"/>
+                            <field name="maintenance_2_end_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Maintenance Window 3">
+                            <field name="maintenance_3_start_date" readonly="1"/>
+                            <field name="maintenance_3_end_date" readonly="1"/>
+                        </group>
+                        <group string="Maintenance Window 4">
+                            <field name="maintenance_4_start_date" readonly="1"/>
+                            <field name="maintenance_4_end_date" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
