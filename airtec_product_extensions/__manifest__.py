@@ -9,7 +9,8 @@
         #"security/ir.model.access.csv",
         #"views/product_tag_view.xml",
         "views/product_template_view.xml",
-        "views/stock_lot_view.xml"
+        "views/stock_lot_view.xml",
+        "report/stock_lot_zpl_report.xml"
     ],
     "installable": True,
     "application": False
