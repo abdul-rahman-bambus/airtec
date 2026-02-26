@@ -1,3 +1,5 @@
+import re
+
 from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models
@@ -28,6 +30,55 @@ class StockLot(models.Model):
     maintenance_3_end_date = fields.Date(string="Maintenance 3 End", compute="_compute_maintenance_dates", store=True)
     maintenance_4_start_date = fields.Date(string="Maintenance 4 Start", compute="_compute_maintenance_dates", store=True)
     maintenance_4_end_date = fields.Date(string="Maintenance 4 End", compute="_compute_maintenance_dates", store=True)
+
+    @api.model
+    def _extract_name_from_payload(self, payload):
+        """Extract the serial name from code payload.
+
+        Primary rule: first 5 leading digits (historical AIRTEC payload format).
+        Fallback: first 5 non-space chars when leading digits are unavailable.
+        """
+        if not payload:
+            return False
+
+        normalized = payload.strip()
+        if not normalized:
+            return False
+
+        match = re.match(r"(\d{5})", normalized)
+        if match:
+            return match.group(1)
+
+        if len(normalized) >= 5:
+            return normalized[:5]
+        return False
+
+    @api.onchange("code_payload")
+    def _onchange_code_payload_set_name(self):
+        for lot in self:
+            derived_name = lot._extract_name_from_payload(lot.code_payload)
+            if derived_name:
+                lot.name = derived_name
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        prepared_vals_list = []
+        for vals in vals_list:
+            prepared_vals = dict(vals)
+            if prepared_vals.get("code_payload") and not prepared_vals.get("name"):
+                derived_name = self._extract_name_from_payload(prepared_vals["code_payload"])
+                if derived_name:
+                    prepared_vals["name"] = derived_name
+            prepared_vals_list.append(prepared_vals)
+        return super().create(prepared_vals_list)
+
+    def write(self, vals):
+        prepared_vals = dict(vals)
+        if prepared_vals.get("code_payload") and "name" not in prepared_vals:
+            derived_name = self._extract_name_from_payload(prepared_vals["code_payload"])
+            if derived_name:
+                prepared_vals["name"] = derived_name
+        return super().write(prepared_vals)
 
     @api.depends("manufacturing_date")
     def _compute_code_dates(self):
