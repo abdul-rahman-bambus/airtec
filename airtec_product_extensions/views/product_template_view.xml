@@ -1,0 +1,33 @@
+<odoo>
+    <record id="view_product_template_form_airtec" model="ir.ui.view">
+        <field name="name">product.template.form.airtec</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+           <!--  <xpath expr="//group[@name='group_general']" position="inside">
+                <field name="tag_ids" widget="many2many_tags"/>
+            </xpath> -->
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Airtec Information">
+                    <group>
+                        <group>
+                            <field name="atlas_relevant"/>
+                            <field name="intrastat_relevant"/>
+                            
+                        </group>
+                        <group>
+                            <field name="device_label_line_4"/>
+                            <field name="measurement_uom"/>
+                            <!-- <field name="barcode"/> -->
+                        </group>
+                        <group>
+                            <field name="control_panel_cable_length_mm"/>
+                            <field name="coupling_cable_length_mm"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
