@@ -172,9 +172,15 @@ class StockLot(models.Model):
     def _get_company_logo_zpl(self, width=120, height=80):
         """Return ZPL ^GFA command for company logo image, or empty string if unavailable."""
         self.ensure_one()
-        logo_b64 = self.company_id.logo
+        company = self.company_id or self.env.company
+        logo_b64 = company.logo or company.logo_web or company.partner_id.image_1920
         if not logo_b64:
             return ""
+
+        if isinstance(logo_b64, str):
+            logo_b64 = logo_b64.strip()
+            if "," in logo_b64 and logo_b64.lower().startswith("data:image"):
+                logo_b64 = logo_b64.split(",", 1)[1]
 
         try:
             raw = base64.b64decode(logo_b64)
