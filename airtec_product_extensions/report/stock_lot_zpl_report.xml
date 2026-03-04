@@ -16,8 +16,7 @@
 ^CI28
 ^PW600
 ^LL420
-^FO20,20^GB120,80,2^FS
-^FO42,50^A0N,26,26^FDLOGO^FS
+<t t-raw="lot._get_company_logo_zpl()"/>
 ^FO170,40^A0N,26,26^FD<t t-esc="lot.company_id.name or ''"/>^FS
 ^FO20,140^A0N,30,30^FDSN:^FS
 ^FO180,140^A0N,30,30^FD<t t-esc="lot.name or ''"/>^FS
