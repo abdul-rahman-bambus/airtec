@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_report_stock_lot_serial_zpl_test" model="ir.actions.report">
+        <field name="name">Serial ZPL Test</field>
+        <field name="model">stock.lot</field>
+        <field name="report_type">qweb-text</field>
+        <field name="report_name">airtec_product_extensions.report_stock_lot_serial_zpl_test</field>
+        <field name="report_file">airtec_product_extensions.report_stock_lot_serial_zpl_test</field>
+        <field name="binding_model_id" ref="stock.model_stock_lot"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_stock_lot_serial_zpl_test">
+        <t t-foreach="docs" t-as="lot">
+^XA
+^CI28
+^PW600
+^LL420
+<t t-raw="lot._get_company_logo_zpl()"/>
+^FO170,40^A0N,26,26^FD<t t-esc="lot.company_id.name or ''"/>^FS
+^FO20,140^A0N,30,30^FDSN:^FS
+^FO180,140^A0N,30,30^FD<t t-esc="lot.name or ''"/>^FS
+^FO20,200^A0N,30,30^FDProduct Name:^FS
+^FO20,240^A0N,30,30^FD<t t-esc="lot.product_id.display_name or ''"/>^FS
+^FO20,300^A0N,30,30^FDMFD:^FS
+^FO180,300^A0N,30,30^FD<t t-esc="lot.manufacturing_date and lot.manufacturing_date.strftime('%Y-%m-%d') or ''"/>^FS
+^XZ
+        </t>
+    </template>
+</odoo>
