@@ -25,16 +25,22 @@
                         </group>
                     </page>
                     <page string="Codes" invisible="not code_device">
-                        <group>
-                            <group>
+                        <group col="2">
+                            <group string="Code Set 1">
                                 <field name="code_1"/>
                                 <field name="code_date_1"/>
+                            </group>
+                            <group string="Code Set 2">
                                 <field name="code_2"/>
                                 <field name="code_date_2"/>
                             </group>
-                            <group>
+                        </group>
+                        <group col="2">
+                            <group string="Code Set 3">
                                 <field name="code_3"/>
                                 <field name="code_date_3"/>
+                            </group>
+                            <group string="Code Set 4">
                                 <field name="code_4"/>
                                 <field name="code_date_4"/>
                             </group>
