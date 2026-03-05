@@ -30,18 +30,18 @@ class StockLot(models.Model):
     maintenance_1_end_date = fields.Date(string="Maintenance 1 End")
     maintenance_2_start_date = fields.Date(string="Maintenance 2 Start")
     maintenance_2_end_date = fields.Date(string="Maintenance 2 End")
-    maintenance_3_start_date = fields.Date(string="Maintenance 3 Start")
-    maintenance_3_end_date = fields.Date(string="Maintenance 3 End")
-    maintenance_4_start_date = fields.Date(string="Maintenance 4 Start")
-    maintenance_4_end_date = fields.Date(string="Maintenance 4 End")
+
+
+    @api.model
+    def _first_day_of_month(self, date_value):
+        return date_value.replace(day=1)
+
+    @api.model
+    def _last_day_of_month(self, date_value):
+        return self._first_day_of_month(date_value) + relativedelta(months=1, days=-1)
 
     @api.model
     def _extract_name_from_payload(self, payload):
-        """Extract the serial name from code payload.
-
-        Primary rule: first 5 leading digits (historical AIRTEC payload format).
-        Fallback: first 5 non-space chars when leading digits are unavailable.
-        """
         if not payload:
             return False
 
@@ -59,7 +59,6 @@ class StockLot(models.Model):
 
     @api.model
     def _extract_codes_from_payload(self, payload):
-        """Extract code_1..code_4 from payload pattern like *6878*5054*0462*3726*."""
         if not payload:
             return {}
 
@@ -80,19 +79,22 @@ class StockLot(models.Model):
             return {}
 
         mfd = fields.Datetime.to_datetime(manufacturing_date).date()
+
+        maintenance_1_start = self._first_day_of_month(mfd + relativedelta(years=4, months=6))
+        maintenance_1_end = self._last_day_of_month(mfd + relativedelta(years=5, months=6))
+        maintenance_2_start = self._first_day_of_month(mfd + relativedelta(years=9, months=6))
+        maintenance_2_end = self._last_day_of_month(mfd + relativedelta(years=10, months=6))
+
+
         return {
             "code_date_1": mfd + relativedelta(years=1),
             "code_date_2": mfd + relativedelta(years=2),
             "code_date_3": mfd + relativedelta(years=3),
             "code_date_4": mfd + relativedelta(years=4),
-            "maintenance_1_start_date": mfd + relativedelta(years=4, months=6),
-            "maintenance_1_end_date": mfd + relativedelta(years=5, months=6),
-            "maintenance_2_start_date": mfd + relativedelta(years=9, months=6),
-            "maintenance_2_end_date": mfd + relativedelta(years=10, months=6),
-            "maintenance_3_start_date": mfd + relativedelta(years=14, months=6),
-            "maintenance_3_end_date": mfd + relativedelta(years=15, months=6),
-            "maintenance_4_start_date": mfd + relativedelta(years=19, months=6),
-            "maintenance_4_end_date": mfd + relativedelta(years=20, months=6),
+            "maintenance_1_start_date": maintenance_1_start,
+            "maintenance_1_end_date": maintenance_1_end,
+            "maintenance_2_start_date": maintenance_2_start,
+            "maintenance_2_end_date": maintenance_2_end,
         }
 
     @api.onchange("code_payload")
@@ -158,7 +160,6 @@ class StockLot(models.Model):
 
         if prepared_vals.get("manufacturing_date"):
             calculated_dates = self._build_dates_from_manufacturing_date(prepared_vals["manufacturing_date"])
-            # Only fill empty date fields to preserve manually adjusted values.
             for lot in self:
                 lot_vals = dict(prepared_vals)
                 for field_name, value in calculated_dates.items():
@@ -170,7 +171,6 @@ class StockLot(models.Model):
         return super().write(prepared_vals)
 
     def _get_company_logo_zpl(self, width=120, height=80):
-        """Return ZPL ^GFA command for company logo image, or empty string if unavailable."""
         self.ensure_one()
         company = self.company_id or self.env.company
         logo_b64 = company.logo or company.logo_web or company.partner_id.image_1920

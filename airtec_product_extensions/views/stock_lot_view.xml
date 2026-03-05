@@ -23,16 +23,6 @@
                                 <field name="maintenance_2_end_date"/>
                             </group>
                         </group>
-                        <group>
-                            <group string="Maintenance Window 3">
-                                <field name="maintenance_3_start_date"/>
-                                <field name="maintenance_3_end_date"/>
-                            </group>
-                            <group string="Maintenance Window 4">
-                                <field name="maintenance_4_start_date"/>
-                                <field name="maintenance_4_end_date"/>
-                            </group>
-                        </group>
                     </page>
                     <page string="Codes" invisible="not code_device">
                         <group>
