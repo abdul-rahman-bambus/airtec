@@ -13,9 +13,10 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 
 ### 1) Maintenance trigger to quotation (CRON)
 - A scheduled action runs daily.
-- It checks `stock.lot` records where maintenance start dates match today:
-  - `maintanance_1_start_date`
-  - `maintanance_2_start_date`
+- It checks `stock.lot` records where maintenance start dates match today.
+- Supported field names are auto-detected to handle naming variations:
+  - `maintanance_1_start_date` / `maintanance_2_start_date`
+  - `maintenance_1_start_date` / `maintenance_2_start_date`
 - For each matching serial (`stock.lot`), it creates one draft quotation with one service line linked to that serial.
 - Duplicate draft quotations for the same serial + maintenance product are prevented.
 
@@ -104,7 +105,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - `views/sale_views.xml`
   - Sales order repairs tab and serial fields on order lines.
 - `views/stock_views.xml`
-  - Lot maintenance fields visibility, location flags, picking links, move-line QC fields.
+  - Location flags, picking links, and move-line QC fields.
 - `views/repair_views.xml`
   - Repair to sale linking fields.
 
@@ -142,7 +143,7 @@ Configure stock locations:
 
 ### C) Serialized products
 - Ensure products are tracked by serial number.
-- Maintain lot-level maintenance dates in `stock.lot`.
+- Maintain lot-level maintenance start dates in whichever supported field names exist on `stock.lot`.
 
 ### D) Repair billing data
 - Ensure repair order lines (parts/fees/operations/moves) are correctly populated so billable lines can be transferred to SO.

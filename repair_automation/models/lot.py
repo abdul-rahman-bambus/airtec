@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.osv import expression
 
 
 class StockLot(models.Model):
@@ -19,14 +20,26 @@ class StockLot(models.Model):
         ], limit=1)
 
     @api.model
+    def _get_maintenance_start_fields(self):
+        """Return existing maintenance start fields to support multiple naming conventions."""
+        candidates = [
+            'maintanance_1_start_date',
+            'maintanance_2_start_date',
+            'maintenance_1_start_date',
+            'maintenance_2_start_date',
+        ]
+        return [name for name in candidates if name in self._fields]
+
+    @api.model
     def _cron_create_maintenance_quotations(self):
         """Create one maintenance quotation per lot when a start date matches today."""
+        start_fields = self._get_maintenance_start_fields()
+        if not start_fields:
+            return
+
         today = fields.Date.context_today(self)
-        lots = self.search([
-            '|',
-            ('maintanance_1_start_date', '=', today),
-            ('maintanance_2_start_date', '=', today),
-        ])
+        domain = expression.OR([[(field_name, '=', today)] for field_name in start_fields])
+        lots = self.search(domain)
 
         if not lots:
             return
