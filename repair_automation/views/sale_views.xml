@@ -7,13 +7,7 @@
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
                 <page string="Repairs">
-                    <field name="repair_order_ids" readonly="1">
-                        <tree>
-                            <field name="name"/>
-                            <field name="lot_id"/>
-                            <field name="state"/>
-                        </tree>
-                    </field>
+                    <field name="repair_order_ids" readonly="1"/>
                 </page>
             </xpath>
         </field>
