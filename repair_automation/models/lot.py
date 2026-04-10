@@ -83,7 +83,7 @@ class StockLot(models.Model):
                 'name': template_line.name or product.get_product_multiline_description_sale() or product.display_name,
                 'product_id': product.id,
                 'product_uom_qty': template_line.product_uom_qty or 1.0,
-                'product_uom': (template_line.product_uom_id or product.uom_id).id,
+                'product_uom_id': (template_line.product_uom_id or product.uom_id).id,
                 'price_unit': price_unit,
                 'discount': discount,
                 'sequence': sequence,
