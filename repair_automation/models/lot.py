@@ -35,6 +35,16 @@ class StockLot(models.Model):
         ]
         return [name for name in candidates if name in self._fields]
 
+
+    def _get_maintenance_partner(self, lot):
+        if 'partner_ids' in lot._fields and lot.partner_ids:
+            return lot.partner_ids[0].commercial_partner_id
+        if 'partner_id' in lot._fields and lot.partner_id:
+            return lot.partner_id.commercial_partner_id
+        if 'owner_id' in lot._fields and lot.owner_id:
+            return lot.owner_id.commercial_partner_id
+        return lot.company_id.partner_id
+
     def _prepare_maintenance_order_values(self, partner, lot):
         return {
             'partner_id': partner.id,
@@ -102,14 +112,7 @@ class StockLot(models.Model):
             if existing_order:
                 continue
 
-            partner = False
-            if 'partner_id' in lot._fields and lot.partner_id:
-                partner = lot.partner_id
-            elif 'owner_id' in lot._fields and lot.owner_id:
-                partner = lot.owner_id.commercial_partner_id
-            elif lot.company_id.partner_id:
-                partner = lot.company_id.partner_id
-
+            partner = self._get_maintenance_partner(lot)
             if not partner:
                 continue
 
