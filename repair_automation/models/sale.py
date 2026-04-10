@@ -1,32 +1,16 @@
-from odoo import _, fields, models
+from odoo import fields, models
 
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
     repair_order_ids = fields.One2many('repair.order', 'sale_order_id', string='Repair Orders')
+    is_maintanance_order = fields.Boolean(string='Is Maintenance Order', default=False, copy=False)
 
     def action_confirm(self):
         res = super().action_confirm()
         self._create_intake_pickings()
         return res
-
-    def _get_or_create_section(self, lot):
-        self.ensure_one()
-        section_name = f'[SN: {lot.name} - {lot.product_id.display_name}]'
-        section = self.order_line.filtered(
-            lambda line: line.display_type == 'line_section' and line.name == section_name
-        )[:1]
-        if section:
-            return section
-
-        sequence = max(self.order_line.mapped('sequence') or [0]) + 1
-        return self.env['sale.order.line'].create({
-            'order_id': self.id,
-            'name': section_name,
-            'display_type': 'line_section',
-            'sequence': sequence,
-        })
 
     def _create_intake_pickings(self):
         picking_model = self.env['stock.picking']
@@ -102,3 +86,13 @@ class SaleOrderLine(models.Model):
         if self.serial_id:
             vals['name'] = f"{vals.get('name', self.name)}\nSerial: {self.serial_id.name}"
         return vals
+
+
+class ResConfigSettings(models.TransientModel):
+    _inherit = 'res.config.settings'
+
+    maintanance_quotation_template_id = fields.Many2one(
+        'sale.order.template',
+        string='Maintenance Quotation Template',
+        config_parameter='repair_automation.maintanance_quotation_template_id',
+    )

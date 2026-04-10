@@ -17,7 +17,8 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - Supported field names are auto-detected to handle naming variations:
   - `maintanance_1_start_date` / `maintanance_2_start_date`
   - `maintenance_1_start_date` / `maintenance_2_start_date`
-- For each matching serial (`stock.lot`), it creates one draft quotation with one service line linked to that serial.
+- For each matching serial (`stock.lot`), it creates one draft quotation and marks it as `is_maintanance_order`.
+- If a maintenance quotation template is configured, cron loads quotation lines from that template and assigns the serial to each line.
 - Duplicate draft quotations for the same serial + maintenance product are prevented.
 
 ### 2) Sales confirmation to intake picking
@@ -59,6 +60,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 ### `sale.order`
 - Adds:
   - `repair_order_ids`
+  - `is_maintanance_order`
 - Overrides:
   - `action_confirm()` to create intake pickings
 
@@ -66,6 +68,8 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - Adds:
   - `serial_id` (`Many2one('stock.lot')`)
   - `is_repair_line` (`Boolean`)
+- UI behavior:
+  - `serial_id` column is shown on sale lines when `is_maintanance_order` is enabled on the quotation/order.
 
 ### `stock.location`
 - Adds routing flags:
@@ -134,18 +138,23 @@ Set one service product to be used by cron quotation creation:
 - Preferred: set system parameter `repair_automation.maintenance_product_id` to the product ID.
 - Fallback behavior: searches service product with internal reference `MAINTENANCE_SERVICE`.
 
-### B) Locations
+### B) Maintenance quotation template (optional, recommended)
+- Configure **Sales Settings > Repair Automation > Maintenance Quotation Template**.
+- Parameter key: `repair_automation.maintanance_quotation_template_id`.
+- If set, cron uses this template to populate quotation lines.
+
+### C) Locations
 Configure stock locations:
 - Mark one or more locations as:
   - Repair Location (`is_repair_location`)
   - Maintenance Location (`is_maintenance_location`)
 - Ensure scrap location exists (`scrap_location=True`).
 
-### C) Serialized products
+### D) Serialized products
 - Ensure products are tracked by serial number.
 - Maintain lot-level maintenance start dates in whichever supported field names exist on `stock.lot`.
 
-### D) Repair billing data
+### E) Repair billing data
 - Ensure repair order lines (parts/fees/operations/moves) are correctly populated so billable lines can be transferred to SO.
 
 ## Usage Summary

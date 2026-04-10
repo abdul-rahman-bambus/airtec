@@ -19,9 +19,15 @@ class StockLot(models.Model):
             ('default_code', '=', 'MAINTENANCE_SERVICE'),
         ], limit=1)
 
+    def _get_maintenance_template(self):
+        template_id = int(self.env['ir.config_parameter'].sudo().get_param(
+            'repair_automation.maintanance_quotation_template_id',
+            default='0',
+        ) or 0)
+        return self.env['sale.order.template'].browse(template_id).exists()
+
     @api.model
     def _get_maintenance_start_fields(self):
-        """Return existing maintenance start fields to support multiple naming conventions."""
         candidates = [
             'maintanance_1_start_date',
             'maintanance_2_start_date',
@@ -30,9 +36,45 @@ class StockLot(models.Model):
         ]
         return [name for name in candidates if name in self._fields]
 
+    def _prepare_maintenance_order_values(self, partner, lot):
+        return {
+            'partner_id': partner.id,
+            'company_id': lot.company_id.id,
+            'origin': f'Maintenance Trigger {lot.name}',
+            'is_maintanance_order': True,
+        }
+
+    def _create_lines_from_template(self, order, template, lot):
+        sale_line_model = self.env['sale.order.line']
+        sequence = 10
+        for template_line in template.sale_order_template_line_ids:
+            product = template_line.product_id
+            if not product:
+                continue
+            sale_line_model.create({
+                'order_id': order.id,
+                'name': template_line.name or product.get_product_multiline_description_sale() or product.display_name,
+                'product_id': product.id,
+                'product_uom_qty': template_line.product_uom_qty or 1.0,
+                'product_uom': template_line.product_uom_id.id,
+                'price_unit': template_line.price_unit,
+                'discount': template_line.discount,
+                'sequence': sequence,
+                'serial_id': lot.id,
+            })
+            sequence += 1
+
+    def _create_fallback_maintenance_line(self, order, lot, product):
+        self.env['sale.order.line'].create({
+            'order_id': order.id,
+            'product_id': product.id,
+            'product_uom_qty': 1.0,
+            'name': product.get_product_multiline_description_sale() or product.display_name,
+            'serial_id': lot.id,
+        })
+
     @api.model
     def _cron_create_maintenance_quotations(self):
-        """Create one maintenance quotation per lot when a start date matches today."""
         start_fields = self._get_maintenance_start_fields()
         if not start_fields:
             return
@@ -40,43 +82,35 @@ class StockLot(models.Model):
         today = fields.Date.context_today(self)
         domain = expression.OR([[(field_name, '=', today)] for field_name in start_fields])
         lots = self.search(domain)
-
         if not lots:
             return
 
-        maintenance_product = self._get_maintenance_product()
-        if not maintenance_product:
-            return
+        template = self._get_maintenance_template()
+        maintenance_product = self._get_maintenance_product() if not template else self.env['product.product']
 
         sale_order_model = self.env['sale.order']
-        sale_line_model = self.env['sale.order.line']
 
         for lot in lots:
             if not lot.product_id:
                 continue
 
-            existing_line = sale_line_model.search([
-                ('serial_id', '=', lot.id),
-                ('order_id.state', 'in', ['draft', 'sent']),
-                ('product_id', '=', maintenance_product.id),
+            existing_order = sale_order_model.search([
+                ('state', 'in', ['draft', 'sent']),
+                ('is_maintanance_order', '=', True),
+                ('order_line.serial_id', '=', lot.id),
             ], limit=1)
-            if existing_line:
+            if existing_order:
                 continue
 
             partner = lot.partner_id or lot.company_id.partner_id
             if not partner:
                 continue
 
-            order = sale_order_model.create({
-                'partner_id': partner.id,
-                'company_id': lot.company_id.id,
-                'origin': f'Maintenance Trigger {lot.name}',
-            })
+            order = sale_order_model.create(self._prepare_maintenance_order_values(partner, lot))
 
-            sale_line_model.create({
-                'order_id': order.id,
-                'product_id': maintenance_product.id,
-                'product_uom_qty': 1.0,
-                'name': maintenance_product.get_product_multiline_description_sale() or maintenance_product.display_name,
-                'serial_id': lot.id,
-            })
+            if template:
+                self._create_lines_from_template(order, template, lot)
+                if not order.order_line and maintenance_product:
+                    self._create_fallback_maintenance_line(order, lot, maintenance_product)
+            elif maintenance_product:
+                self._create_fallback_maintenance_line(order, lot, maintenance_product)
