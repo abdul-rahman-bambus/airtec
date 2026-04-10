@@ -11,7 +11,7 @@ class StockLocation(models.Model):
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    sale_order_id = fields.Many2one('sale.order', string='Sales Order', index=True)
+    sale_order_id = fields.Many2one('sale.order', string='Source Sales Order', index=True)
     repair_order_id = fields.Many2one('repair.order', string='Repair Order', index=True)
     lot_id = fields.Many2one('stock.lot', string='Serial Number', index=True)
 

@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class RepairOrder(models.Model):
@@ -7,9 +8,15 @@ class RepairOrder(models.Model):
     sale_order_id = fields.Many2one('sale.order', string='Sales Order', index=True)
     sale_line_id = fields.Many2one('sale.order.line', string='Sales Order Line', index=True)
 
-    _sql_constraints = [
-        ('unique_serial_repair', 'unique(lot_id)', 'Only one repair order per serial allowed'),
-    ]
+    @api.constrains('lot_id')
+    def _check_unique_serial_repair(self):
+        for repair in self.filtered('lot_id'):
+            duplicate = self.search([
+                ('id', '!=', repair.id),
+                ('lot_id', '=', repair.lot_id.id),
+            ], limit=1)
+            if duplicate:
+                raise ValidationError('Only one repair order per serial allowed')
 
     def action_repair_done(self):
         result = super().action_repair_done()
