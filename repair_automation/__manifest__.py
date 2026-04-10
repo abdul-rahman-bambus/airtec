@@ -1,0 +1,25 @@
+{
+    'name': 'Repair Automation',
+    'version': '19.0.1.0.0',
+    'summary': 'Automated serialized repair and maintenance workflow',
+    'description': 'Automates maintenance quotation, intake, repair routing, and repair billing.',
+    'author': 'Airtec',
+    'license': 'LGPL-3',
+    'depends': [
+        'sale_management',
+        'stock',
+        'repair',
+        'quality_control',
+        'sale_stock',
+        'airtec_product_extensions',
+    ],
+    'data': [
+        'security/ir.model.access.csv',
+        'data/cron.xml',
+        'views/sale_views.xml',
+        'views/repair_views.xml',
+        'views/stock_views.xml',
+    ],
+    'installable': True,
+    'application': False,
+}
