@@ -1,5 +1,4 @@
 from odoo import api, fields, models
-from odoo.osv import expression
 
 
 class StockLot(models.Model):
@@ -56,7 +55,7 @@ class StockLot(models.Model):
                 'name': template_line.name or product.get_product_multiline_description_sale() or product.display_name,
                 'product_id': product.id,
                 'product_uom_qty': template_line.product_uom_qty or 1.0,
-                'product_uom': template_line.product_uom_id.id,
+                'product_uom': (template_line.product_uom_id or product.uom_id).id,
                 'price_unit': template_line.price_unit,
                 'discount': template_line.discount,
                 'sequence': sequence,
@@ -80,8 +79,9 @@ class StockLot(models.Model):
             return
 
         today = fields.Date.context_today(self)
-        domain = expression.OR([[(field_name, '=', today)] for field_name in start_fields])
-        lots = self.search(domain)
+        lots = self.browse()
+        for field_name in start_fields:
+            lots |= self.search([(field_name, '=', today)])
         if not lots:
             return
 
@@ -102,7 +102,14 @@ class StockLot(models.Model):
             if existing_order:
                 continue
 
-            partner = lot.partner_id or lot.company_id.partner_id
+            partner = False
+            if 'partner_id' in lot._fields and lot.partner_id:
+                partner = lot.partner_id
+            elif 'owner_id' in lot._fields and lot.owner_id:
+                partner = lot.owner_id.commercial_partner_id
+            elif lot.company_id.partner_id:
+                partner = lot.company_id.partner_id
+
             if not partner:
                 continue
 
