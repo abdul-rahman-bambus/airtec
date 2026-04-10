@@ -66,14 +66,26 @@ class StockLot(models.Model):
             product = template_line.product_id
             if not product:
                 continue
+            price_unit = 0.0
+            if 'price_unit' in template_line._fields:
+                price_unit = template_line.price_unit
+            elif 'price' in template_line._fields:
+                price_unit = template_line.price
+            elif 'list_price' in template_line._fields:
+                price_unit = template_line.list_price
+            elif product.lst_price:
+                price_unit = product.lst_price
+
+            discount = template_line.discount if 'discount' in template_line._fields else 0.0
+
             sale_line_model.create({
                 'order_id': order.id,
                 'name': template_line.name or product.get_product_multiline_description_sale() or product.display_name,
                 'product_id': product.id,
                 'product_uom_qty': template_line.product_uom_qty or 1.0,
                 'product_uom': (template_line.product_uom_id or product.uom_id).id,
-                'price_unit': template_line.price_unit,
-                'discount': template_line.discount,
+                'price_unit': price_unit,
+                'discount': discount,
                 'sequence': sequence,
                 'serial_id': lot.id,
             })
