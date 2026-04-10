@@ -13,8 +13,8 @@
                     <field name="repair_order_ids" readonly="1"/>
                 </page>
             </xpath>
-            <xpath expr="//field[@name='order_line']//list//field[@name='product_template_id']" position="after">
-                <field name="serial_id" optional="show" column_invisible="parent.is_maintanance_order == False"/>
+            <xpath expr="//field[@name='order_line']//list//field[@name='product_id' or @name='product_template_id']" position="after">
+                <field name="serial_id" column_invisible="parent.is_maintanance_order == False"/>
                 <field name="is_repair_line" optional="hide"/>
             </xpath>
         </field>
