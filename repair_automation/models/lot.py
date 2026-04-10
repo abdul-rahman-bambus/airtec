@@ -35,7 +35,6 @@ class StockLot(models.Model):
         ]
         return [name for name in candidates if name in self._fields]
 
-
     def _get_maintenance_partner(self, lot):
         if 'partner_ids' in lot._fields and lot.partner_ids:
             return lot.partner_ids[0].commercial_partner_id
@@ -43,12 +42,19 @@ class StockLot(models.Model):
             return lot.partner_id.commercial_partner_id
         if 'owner_id' in lot._fields and lot.owner_id:
             return lot.owner_id.commercial_partner_id
-        return lot.company_id.partner_id
+        return (lot.company_id or self.env.company).partner_id
+
+    def _is_lot_in_customer_location(self, lot):
+        if 'location_id' in lot._fields and lot.location_id:
+            return lot.location_id.usage == 'customer'
+        quant_ids = lot.quant_ids.filtered(lambda q: q.location_id.usage == 'customer' and q.quantity > 0)
+        return bool(quant_ids)
 
     def _prepare_maintenance_order_values(self, partner, lot):
+        company = lot.company_id or self.env.company
         return {
             'partner_id': partner.id,
-            'company_id': lot.company_id.id,
+            'company_id': company.id,
             'origin': f'Maintenance Trigger {lot.name}',
             'is_maintanance_order': True,
         }
@@ -91,7 +97,11 @@ class StockLot(models.Model):
         today = fields.Date.context_today(self)
         lots = self.browse()
         for field_name in start_fields:
-            lots |= self.search([(field_name, '=', today)])
+            field_domain = [(field_name, '=', today)]
+            if 'location_id' in self._fields:
+                field_domain.append(('location_id.usage', '=', 'customer'))
+            lots |= self.search(field_domain)
+
         if not lots:
             return
 
@@ -101,7 +111,7 @@ class StockLot(models.Model):
         sale_order_model = self.env['sale.order']
 
         for lot in lots:
-            if not lot.product_id:
+            if not lot.product_id or not self._is_lot_in_customer_location(lot):
                 continue
 
             existing_order = sale_order_model.search([

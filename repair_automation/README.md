@@ -14,6 +14,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 ### 1) Maintenance trigger to quotation (CRON)
 - A scheduled action runs daily.
 - It checks `stock.lot` records where maintenance start dates match today.
+- It only processes serials currently in **Customer** location (maintenance applicable only at customer side).
 - Supported field names are auto-detected to handle naming variations:
   - `maintanance_1_start_date` / `maintanance_2_start_date`
   - `maintenance_1_start_date` / `maintenance_2_start_date`
@@ -164,6 +165,32 @@ Configure stock locations:
 4. Receive and apply QC route to repair/scrap/maintenance.
 5. Move to repair location -> repair order auto-created.
 6. Complete repair -> costs pushed to SO under serial section and return delivery generated.
+
+
+## Required Process Changes (Important)
+
+To align operations with the implemented automation, follow these process updates:
+
+1. **Maintenance trigger eligibility**
+   - A serial is eligible for maintenance cron only when its current location is **Customer** usage.
+   - If a serial is still in internal/transit/vendor locations, cron will skip it.
+
+2. **Lot partner ownership for quotation partner**
+   - Partner is resolved primarily from `stock.lot.partner_ids` (first partner).
+   - If missing, fallback chain is: `partner_id` -> `owner_id` -> company partner.
+   - Ensure lot partner assignment is maintained for customer-owned serialized assets.
+
+3. **Maintenance quotation template usage**
+   - Configure `Maintenance Quotation Template` in Sales settings when using predefined maintenance line sets.
+   - Cron copies template lines and assigns the triggering serial to each generated sale line.
+
+4. **Company assignment safety**
+   - Sale order company is set from lot company, with environment company fallback.
+   - Ensure lots are linked to the correct company in multi-company setups to avoid cross-company quotation creation.
+
+5. **Maintenance dates governance**
+   - Keep maintenance start fields populated (`maintanance_*` or `maintenance_*` variants).
+   - Cron checks start date == today, so date accuracy is required for timely quotation generation.
 
 ## Notes & Limitations
 - This module assumes standard Odoo 19 models for Sale/Stock/Repair and compatible view architecture.
