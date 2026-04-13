@@ -143,7 +143,6 @@ class RepairOrder(models.Model):
             })
 
             move = self.env['stock.move'].create({
-                'name': repair.product_id.display_name,
                 'product_id': repair.product_id.id,
                 'product_uom_qty': 1,
                 'product_uom': repair.product_uom.id,

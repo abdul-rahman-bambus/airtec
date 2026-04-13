@@ -49,7 +49,6 @@ class SaleOrder(models.Model):
                     'lot_id': line.serial_id.id,
                 })
                 move = self.env['stock.move'].create({
-                    'name': line.name or line.product_id.display_name,
                     'product_id': line.product_id.id,
                     'product_uom_qty': 1,
                     'product_uom': line.product_uom_id.id,
