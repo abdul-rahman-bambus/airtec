@@ -20,4 +20,18 @@
         </field>
     </record>
 
+    <record id="view_sale_order_template_form_repair_automation" model="ir.ui.view">
+        <field name="name">sale.order.template.form.repair.automation</field>
+        <field name="model">sale.order.template</field>
+        <field name="inherit_id" search="[('model','=','sale.order.template'),('type','=','form')]"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Maintenance Automation">
+                    <field name="is_maintanance_quotation"/>
+                    <field name="maintanance_1"/>
+                    <field name="maintanance_2"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
 </odoo>
