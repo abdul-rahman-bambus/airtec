@@ -62,7 +62,7 @@ class SaleOrder(models.Model):
                     'picking_id': picking.id,
                     'product_id': line.product_id.id,
                     'product_uom_id': line.product_uom_id.id,
-                    'qty_done': 1,
+                    'quantity': 1,
                     'location_id': src_location.id,
                     'location_dest_id': dest_location.id,
                     'lot_id': line.serial_id.id,
