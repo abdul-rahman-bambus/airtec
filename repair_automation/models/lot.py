@@ -76,9 +76,24 @@ class StockLot(models.Model):
             )
         return templates[0]
 
+
+    def _get_or_create_serial_section(self, order, lot):
+        section_name = f"[SN: {lot.name} - {lot.product_id.display_name}]"
+        existing = order.order_line.filtered(lambda l: l.display_type == 'line_section' and l.name == section_name)[:1]
+        if existing:
+            return existing
+        sequence = max(order.order_line.mapped('sequence') or [0]) + 1
+        return self.env['sale.order.line'].create({
+            'order_id': order.id,
+            'display_type': 'line_section',
+            'name': section_name,
+            'sequence': sequence,
+        })
+
     def _create_lines_from_template(self, order, template, lot):
         sale_line_model = self.env['sale.order.line']
-        sequence = 10
+        section_line = self._get_or_create_serial_section(order, lot)
+        sequence = section_line.sequence + 1
         for template_line in template.sale_order_template_line_ids:
             product = template_line.product_id
             if not product:

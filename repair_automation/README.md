@@ -20,6 +20,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
   - `maintenance_1_start_date` / `maintenance_2_start_date`
 - For each matching serial (`stock.lot`), it creates one draft quotation and marks it as `is_maintanance_order`.
 - Cron auto-selects the quotation template based on maintenance window (`maintanance_1` / `maintanance_2`) where `is_maintanance_quotation` is enabled and assigns the serial to each generated line.
+- Cron creates a dynamic section line per serial (`[SN: serial - product]`) so multi-serial quotations remain identifiable in form view and quotation preview/report.
 - Duplicate draft quotations for the same serial + maintenance product are prevented.
 
 ### 2) Sales confirmation to intake picking
