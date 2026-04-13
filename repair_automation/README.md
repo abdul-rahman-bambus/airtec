@@ -140,7 +140,7 @@ Set one service product to be used by cron quotation creation:
 - Fallback behavior: searches service product with internal reference `MAINTENANCE_SERVICE`.
 
 ### B) Maintenance quotation templates (required)
-- Configure templates in **Sales > Configuration > Quotation Templates**.
+- Configure templates on model `sale.order.template` (Quotation Templates).
 - Enable `is_maintanance_quotation` on templates meant for cron usage.
 - Mark one of the maintenance window flags:
   - `maintanance_1` for maintenance window 1
