@@ -19,7 +19,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
   - `maintanance_1_start_date` / `maintanance_2_start_date`
   - `maintenance_1_start_date` / `maintenance_2_start_date`
 - For each matching serial (`stock.lot`), it creates one draft quotation and marks it as `is_maintanance_order`.
-- If a maintenance quotation template is configured, cron loads quotation lines from that template and assigns the serial to each line.
+- Cron auto-selects the quotation template based on maintenance window (`maintanance_1` / `maintanance_2`) where `is_maintanance_quotation` is enabled and assigns the serial to each generated line.
 - Duplicate draft quotations for the same serial + maintenance product are prevented.
 
 ### 2) Sales confirmation to intake picking
@@ -139,10 +139,13 @@ Set one service product to be used by cron quotation creation:
 - Preferred: set system parameter `repair_automation.maintenance_product_id` to the product ID.
 - Fallback behavior: searches service product with internal reference `MAINTENANCE_SERVICE`.
 
-### B) Maintenance quotation template (optional, recommended)
-- Configure **Sales Settings > Repair Automation > Maintenance Quotation Template**.
-- Parameter key: `repair_automation.maintanance_quotation_template_id`.
-- If set, cron uses this template to populate quotation lines.
+### B) Maintenance quotation templates (required)
+- Configure templates in **Sales > Configuration > Quotation Templates**.
+- Enable `is_maintanance_quotation` on templates meant for cron usage.
+- Mark one of the maintenance window flags:
+  - `maintanance_1` for maintenance window 1
+  - `maintanance_2` for maintenance window 2
+- Cron auto-selects template by maintenance window and uses the first matching template by id.
 
 ### C) Locations
 Configure stock locations:
@@ -180,9 +183,10 @@ To align operations with the implemented automation, follow these process update
    - If missing, fallback chain is: `partner_id` -> `owner_id` -> company partner.
    - Ensure lot partner assignment is maintained for customer-owned serialized assets.
 
-3. **Maintenance quotation template usage**
-   - Configure `Maintenance Quotation Template` in Sales settings when using predefined maintenance line sets.
-   - Cron copies template lines and assigns the triggering serial to each generated sale line.
+3. **Maintenance quotation template governance**
+   - Maintain templates directly on `sale.order.template` using flags: `is_maintanance_quotation`, `maintanance_1`, `maintanance_2`.
+   - If multiple templates match a window, cron selects deterministically (first by id) and logs a warning.
+   - If no template matches a window, cron skips that lot and logs a warning (no crash).
 
 4. **Company assignment safety**
    - Sale order company is set from lot company, with environment company fallback.

@@ -1,29 +1,15 @@
+import logging
+
 from odoo import api, fields, models
+
+
+_logger = logging.getLogger(__name__)
 
 
 class StockLot(models.Model):
     _inherit = 'stock.lot'
 
     maintenance_sale_line_ids = fields.One2many('sale.order.line', 'serial_id', string='Maintenance Sale Lines')
-
-    def _get_maintenance_product(self):
-        param_key = 'repair_automation.maintenance_product_id'
-        product_id = int(self.env['ir.config_parameter'].sudo().get_param(param_key, default='0') or 0)
-        product = self.env['product.product'].browse(product_id)
-        if product.exists():
-            return product
-        return self.env['product.product'].search([
-            ('type', '=', 'service'),
-            ('sale_ok', '=', True),
-            ('default_code', '=', 'MAINTENANCE_SERVICE'),
-        ], limit=1)
-
-    def _get_maintenance_template(self):
-        template_id = int(self.env['ir.config_parameter'].sudo().get_param(
-            'repair_automation.maintanance_quotation_template_id',
-            default='0',
-        ) or 0)
-        return self.env['sale.order.template'].browse(template_id).exists()
 
     @api.model
     def _get_maintenance_start_fields(self):
@@ -50,14 +36,45 @@ class StockLot(models.Model):
         quant_ids = lot.quant_ids.filtered(lambda q: q.location_id.usage == 'customer' and q.quantity > 0)
         return bool(quant_ids)
 
-    def _prepare_maintenance_order_values(self, partner, lot):
+    def _prepare_maintenance_order_values(self, partner, lot, template):
         company = lot.company_id or self.env.company
         return {
             'partner_id': partner.id,
             'company_id': company.id,
             'origin': f'Maintenance Trigger {lot.name}',
             'is_maintanance_order': True,
+            'sale_order_template_id': template.id,
         }
+
+    def _resolve_maintenance_window(self, lot, today):
+        if 'maintanance_1_start_date' in lot._fields and lot.maintanance_1_start_date == today:
+            return 'maintanance_1'
+        if 'maintenance_1_start_date' in lot._fields and lot.maintenance_1_start_date == today:
+            return 'maintanance_1'
+        if 'maintanance_2_start_date' in lot._fields and lot.maintanance_2_start_date == today:
+            return 'maintanance_2'
+        if 'maintenance_2_start_date' in lot._fields and lot.maintenance_2_start_date == today:
+            return 'maintanance_2'
+        return False
+
+    def _select_template_for_window(self, window_flag, company):
+        domain = [
+            ('is_maintanance_quotation', '=', True),
+            (window_flag, '=', True),
+            ('company_id', 'in', [company.id, False]),
+        ]
+        templates = self.env['sale.order.template'].search(domain, order='id asc')
+        if not templates:
+            _logger.warning('No maintenance template found for window %s and company %s', window_flag, company.display_name)
+            return self.env['sale.order.template']
+        if len(templates) > 1:
+            _logger.warning(
+                'Multiple maintenance templates found for window %s. Using template %s (id=%s).',
+                window_flag,
+                templates[0].name,
+                templates[0].id,
+            )
+        return templates[0]
 
     def _create_lines_from_template(self, order, template, lot):
         sale_line_model = self.env['sale.order.line']
@@ -91,15 +108,6 @@ class StockLot(models.Model):
             })
             sequence += 1
 
-    def _create_fallback_maintenance_line(self, order, lot, product):
-        self.env['sale.order.line'].create({
-            'order_id': order.id,
-            'product_id': product.id,
-            'product_uom_qty': 1.0,
-            'name': product.get_product_multiline_description_sale() or product.display_name,
-            'serial_id': lot.id,
-        })
-
     @api.model
     def _cron_create_maintenance_quotations(self):
         start_fields = self._get_maintenance_start_fields()
@@ -117,13 +125,14 @@ class StockLot(models.Model):
         if not lots:
             return
 
-        template = self._get_maintenance_template()
-        maintenance_product = self._get_maintenance_product() if not template else self.env['product.product']
-
         sale_order_model = self.env['sale.order']
 
         for lot in lots:
             if not lot.product_id or not self._is_lot_in_customer_location(lot):
+                continue
+
+            maintenance_window = self._resolve_maintenance_window(lot, today)
+            if not maintenance_window:
                 continue
 
             existing_order = sale_order_model.search([
@@ -136,13 +145,16 @@ class StockLot(models.Model):
 
             partner = self._get_maintenance_partner(lot)
             if not partner:
+                _logger.warning('Skipping lot %s because no partner is resolvable.', lot.name)
                 continue
 
-            order = sale_order_model.create(self._prepare_maintenance_order_values(partner, lot))
+            template = self._select_template_for_window(maintenance_window, lot.company_id or self.env.company)
+            if not template:
+                _logger.warning('Skipping lot %s because no template is configured for %s.', lot.name, maintenance_window)
+                continue
+            if not template.sale_order_template_line_ids:
+                _logger.warning('Skipping lot %s because selected template %s has no lines.', lot.name, template.name)
+                continue
 
-            if template:
-                self._create_lines_from_template(order, template, lot)
-                if not order.order_line and maintenance_product:
-                    self._create_fallback_maintenance_line(order, lot, maintenance_product)
-            elif maintenance_product:
-                self._create_fallback_maintenance_line(order, lot, maintenance_product)
+            order = sale_order_model.create(self._prepare_maintenance_order_values(partner, lot, template))
+            self._create_lines_from_template(order, template, lot)

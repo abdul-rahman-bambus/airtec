@@ -88,11 +88,9 @@ class SaleOrderLine(models.Model):
         return vals
 
 
-class ResConfigSettings(models.TransientModel):
-    _inherit = 'res.config.settings'
+class SaleOrderTemplate(models.Model):
+    _inherit = 'sale.order.template'
 
-    maintanance_quotation_template_id = fields.Many2one(
-        'sale.order.template',
-        string='Maintenance Quotation Template',
-        config_parameter='repair_automation.maintanance_quotation_template_id',
-    )
+    is_maintanance_quotation = fields.Boolean(string='Maintenance Quotation Template')
+    maintanance_1 = fields.Boolean(string='Maintenance Window 1')
+    maintanance_2 = fields.Boolean(string='Maintenance Window 2')

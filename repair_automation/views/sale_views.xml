@@ -20,18 +20,17 @@
         </field>
     </record>
 
-    <record id="res_config_settings_view_form_repair_automation" model="ir.ui.view">
-        <field name="name">res.config.settings.view.form.repair.automation</field>
-        <field name="model">res.config.settings</field>
-        <field name="inherit_id" ref="sale.res_config_settings_view_form"/>
+    <record id="view_sale_order_template_form_repair_automation" model="ir.ui.view">
+        <field name="name">sale.order.template.form.repair.automation</field>
+        <field name="model">sale.order.template</field>
+        <field name="inherit_id" ref="sale.sale_order_template_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//app[contains(@name, 'sale')]" position="inside">
-                <block title="Repair Automation" name="repair_automation_settings_block">
-                    <setting string="Maintenance Quotation Template" id="maintanance_quotation_template_setting"
-                             help="Template used by maintenance cron while creating maintenance quotations.">
-                        <field name="maintanance_quotation_template_id" options="{'no_create': True}"/>
-                    </setting>
-                </block>
+            <xpath expr="//sheet/group" position="inside">
+                <group string="Maintenance Automation">
+                    <field name="is_maintanance_quotation"/>
+                    <field name="maintanance_1"/>
+                    <field name="maintanance_2"/>
+                </group>
             </xpath>
         </field>
     </record>
