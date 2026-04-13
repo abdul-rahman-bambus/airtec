@@ -156,7 +156,7 @@ class RepairOrder(models.Model):
                 'picking_id': picking.id,
                 'product_id': repair.product_id.id,
                 'product_uom_id': repair.product_uom.id,
-                'qty_done': 1,
+                'quantity': 1,
                 'location_id': source_location.id,
                 'location_dest_id': customer_location.id,
                 'lot_id': repair.lot_id.id,
