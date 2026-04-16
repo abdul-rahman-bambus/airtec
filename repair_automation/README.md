@@ -123,7 +123,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - `data/cron.xml`
   - Daily maintenance quotation scheduled action.
 - `views/sale_views.xml`
-  - Sales order repairs tab and serial fields on order lines.
+  - Sales order repairs tab, serial fields on order lines, and dedicated Maintenance Quotations menu.
 - `views/stock_views.xml`
   - Location flags, picking links, and move-line QC fields.
 - `views/repair_views.xml`

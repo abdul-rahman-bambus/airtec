@@ -1,6 +1,6 @@
 {
     'name': 'Repair Automation',
-    'version': '19.0.2.1.0',
+    'version': '19.0.3.0.0',
     'summary': 'Automated serialized repair and maintenance workflow',
     'description': 'Automates maintenance quotation, intake, repair routing, and repair billing.',
     'author': 'Airtec',
