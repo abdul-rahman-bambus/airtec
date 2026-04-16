@@ -24,7 +24,12 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - Duplicate draft quotations for the same serial + maintenance product are prevented.
 
 ### 2) Sales confirmation to intake picking
-- On `sale.order.action_confirm()`, the module creates incoming intake pickings for serial-linked sale lines.
+- On `sale.order.action_confirm()`, the module creates incoming intake pickings only for valid serialized stock lines.
+- Eligibility for intake creation:
+  - serial is set (`serial_id`)
+  - line is not a display/section/note line
+  - product type is **Stockable** (`type = product`)
+  - serial product matches the sales line product
 - Intake picking, move, and move line are linked back to:
   - Sale Order
   - Sale Order Line
@@ -118,7 +123,7 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - `data/cron.xml`
   - Daily maintenance quotation scheduled action.
 - `views/sale_views.xml`
-  - Sales order repairs tab and serial fields on order lines.
+  - Sales order repairs tab, serial fields on order lines, and dedicated Maintenance Quotations menu.
 - `views/stock_views.xml`
   - Location flags, picking links, and move-line QC fields.
 - `views/repair_views.xml`
@@ -219,6 +224,10 @@ To align operations with the implemented automation, follow these process update
    - Ensure incoming operations execute standard quality checks before validating receipt.
    - Route automation is triggered on incoming validation and relies on quality check state (`pass`/`fail`) unless a manual `qc_result` override is provided.
    - For scrap decisions in default flow, set manual `qc_result = scrap` on the move line.
+
+7. **Sales line serial governance (to prevent lot/product mismatch)**
+   - Do not attach serial numbers to service lines (e.g., maintenance service / repair service).
+   - Intake transfer generation now ignores non-stockable lines and lines where serial product does not match line product.
 
 ## Notes & Limitations
 - This module assumes standard Odoo 19 models for Sale/Stock/Repair and compatible view architecture.

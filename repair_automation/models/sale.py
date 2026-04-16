@@ -15,7 +15,7 @@ class SaleOrder(models.Model):
     def _create_intake_pickings(self):
         picking_model = self.env['stock.picking']
         for order in self:
-            serial_lines = order.order_line.filtered(lambda line: line.serial_id and not line.display_type)
+            serial_lines = order.order_line.filtered(lambda line: line._is_intake_serial_line())
             if not serial_lines:
                 continue
 
@@ -79,6 +79,16 @@ class SaleOrderLine(models.Model):
         domain="[('product_id', '=', product_id)]",
     )
     is_repair_line = fields.Boolean(string='Repair Generated Line', default=False)
+
+    def _is_intake_serial_line(self):
+        self.ensure_one()
+        if self.display_type or not self.serial_id:
+            return False
+        if self.product_id.type != 'product':
+            return False
+        if self.serial_id.product_id and self.serial_id.product_id != self.product_id:
+            return False
+        return True
 
     def _prepare_invoice_line(self, **optional_values):
         vals = super()._prepare_invoice_line(**optional_values)
