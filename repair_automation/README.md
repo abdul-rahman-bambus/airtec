@@ -24,18 +24,26 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - Duplicate draft quotations for the same serial + maintenance product are prevented.
 
 ### 2) Sales confirmation to intake picking
-- On `sale.order.action_confirm()`, the module creates incoming intake pickings for serial-linked sale lines.
+- On `sale.order.action_confirm()`, the module creates incoming intake pickings only for valid serialized stock lines.
+- Eligibility for intake creation:
+  - serial is set (`serial_id`)
+  - line is not a display/section/note line
+  - product type is **Stockable** (`type = product`)
+  - serial product matches the sales line product
 - Intake picking, move, and move line are linked back to:
   - Sale Order
   - Sale Order Line
   - Serial Number (`stock.lot`)
 
-### 3) QC-based routing
-- `stock.move.line` includes `qc_result` with options:
-  - Repair
-  - Scrap
-  - Maintenance
-- Applying QC route updates destination location to a configured repair/maintenance/scrap location.
+### 3) QC-based routing (default quality flow)
+- On incoming picking validation, the module evaluates each done serial move line.
+- Route decision priority:
+  1. Manual `qc_result` on `stock.move.line` (if set),
+  2. Otherwise infer from default `quality.check`:
+     - any `fail` => **Repair**
+     - all `pass` => **Maintenance**
+- Then it auto-creates an **internal transfer** from intake destination to the configured repair/maintenance/scrap destination.
+- Duplicate internal routing pickings for the same source move line are prevented.
 
 ### 4) Auto repair creation from stock move completion
 - When moves are completed (`stock.move._action_done()`), any move arriving at a repair location triggers repair order creation.
@@ -83,6 +91,9 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
   - `sale_order_id`
   - `repair_order_id`
   - `lot_id`
+  - `qc_source_move_line_id`
+- Overrides:
+  - `button_validate()` to create internal QC routing pickings for completed incoming transfers.
 
 ### `stock.move`
 - Adds:
@@ -93,7 +104,10 @@ The module links Sales, Inventory, and Repairs so that maintenance triggers, int
 - Adds:
   - `sale_line_id`
   - `qc_result`
+  - `qc_route_picking_id`
 - Method:
+  - `_infer_qc_result_from_quality_checks()`
+  - `_get_qc_destination_location()`
   - `action_apply_qc_route()`
 
 ### `repair.order`
@@ -170,6 +184,15 @@ Configure stock locations:
 5. Move to repair location -> repair order auto-created.
 6. Complete repair -> costs pushed to SO under serial section and return delivery generated.
 
+### Default quality flow routing behavior
+1. Confirm SO -> inbound receipt is created for serialized line.
+2. Execute Odoo quality checks during incoming process.
+3. Validate incoming picking.
+4. Module infers route from quality checks (or manual `qc_result` override) and creates internal transfer:
+   - fail => repair location
+   - pass => maintenance location
+   - manual `qc_result = scrap` => scrap location
+
 
 ## Required Process Changes (Important)
 
@@ -196,6 +219,15 @@ To align operations with the implemented automation, follow these process update
 5. **Maintenance dates governance**
    - Keep maintenance start fields populated (`maintanance_*` or `maintenance_*` variants).
    - Cron checks start date == today, so date accuracy is required for timely quotation generation.
+
+6. **Default quality checks are now process-critical**
+   - Ensure incoming operations execute standard quality checks before validating receipt.
+   - Route automation is triggered on incoming validation and relies on quality check state (`pass`/`fail`) unless a manual `qc_result` override is provided.
+   - For scrap decisions in default flow, set manual `qc_result = scrap` on the move line.
+
+7. **Sales line serial governance (to prevent lot/product mismatch)**
+   - Do not attach serial numbers to service lines (e.g., maintenance service / repair service).
+   - Intake transfer generation now ignores non-stockable lines and lines where serial product does not match line product.
 
 ## Notes & Limitations
 - This module assumes standard Odoo 19 models for Sale/Stock/Repair and compatible view architecture.
